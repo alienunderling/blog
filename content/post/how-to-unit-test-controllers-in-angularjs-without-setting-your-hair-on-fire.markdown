@@ -83,6 +83,8 @@ Most of the resources available at the time of writing for unit testing with Ang
 To unit test an AngularJS controller, you can take advantage of Angular's [dependency injection](http://docs.angularjs.org/guide/di) and inject your own version of the services those controllers depend on to control the environment in which the test takes place and also to check that the expected results are occurring.  For example, I have this controller defined in my app to control the highlighting of which tab has been navigated to:
 
 ```
+var app = angular.module('app', []);
+
 app.controller('NavCtrl', function($scope, $location) {
     $scope.isActive = function(route) {
         return route === $location.path();
@@ -93,27 +95,33 @@ app.controller('NavCtrl', function($scope, $location) {
 If I want to test the `isActive` function, how do I do so?  I need to ensure that the `$location` service returns what is expected, and that the output of the function is what is expected.  So in our test spec we have a `beforeEach` call that gets made that sets up some local variables to hold our (controlled) version of those services, and injects them into the controller so that those are the ones to get used.  Then in our actual test we have assertions that are congruent with our expectations.  It looks like this:
 
 ```
-describe('NavCtrl', function() {
-    var scope, $location, createController;
+describe('NavCtrl', function () {
+	beforeEach(module('app'));
 
-    beforeEach(inject(function ($rootScope, $controller _$location_) {
-        $location = _$location_;
-        scope = $rootScope.$new();
+	var scope, $controller, $location, createController;
 
-        createController = function() {
-            return $controller('NavCtrl', {
-                '$scope': scope
-            });
-        };
-    }));
+	beforeEach(inject(function ($rootScope,  _$location_, _$controller_) {
+		// The injector unwraps the underscores (_) from around the parameter names when matching
+		$controller = _$controller_;
+		$location = _$location_;
+		scope = $rootScope.$new();
 
-    it('should have a method to check if the path is active', function() {
-        var controller = createController();
-        $location.path('/about');
-        expect($location.path()).toBe('/about');
-        expect(scope.isActive('/about')).toBe(true);
-        expect(scope.isActive('/contact')).toBe(false);
-    });
+		createController = function () {
+			return $controller('NavCtrl', {
+				$scope: scope
+			});
+		};
+	}));
+
+	it('should have a method to check if the path is active', function () {
+			var controller = createController();
+
+			$location.path('/about');
+            
+			expect($location.path()).toBe('/about');
+			expect(scope.isActive('/about')).toBe(true);
+			expect(scope.isActive('/contact')).toBe(false);
+		});
 });
 ```
 
